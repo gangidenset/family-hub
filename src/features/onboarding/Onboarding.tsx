@@ -7,12 +7,36 @@ import { Icon } from '../../components/Icon';
 import { guessDeviceName } from '../../lib/device';
 import { ConnectFlow } from '../sync/Connect';
 import { navigate } from '../../app/router';
+import { RestoreSection } from '../settings/RestoreSection';
 
-type Step = 'welcome' | 'create' | 'join';
+type Step = 'welcome' | 'create' | 'join' | 'restore';
 
 export function Onboarding({ db, onDone }: { db: FamilyDB; onDone: () => Promise<void> }) {
   const [step, setStep] = useState<Step>('welcome');
 
+  if (step === 'restore') {
+    return (
+      <main className="welcome">
+        <div>
+          <button className="btn ghost small" onClick={() => setStep('welcome')}>
+            <Icon name="back" />
+            戻る
+          </button>
+          <h1>バックアップから復元</h1>
+          <p className="muted">機種変更などで書き出したバックアップファイルを選んでください。</p>
+        </div>
+        <RestoreSection
+          db={db}
+          currentGroupId={null}
+          currentGroupName={null}
+          onRestored={async () => {
+            navigate('/', { replace: true });
+            await onDone();
+          }}
+        />
+      </main>
+    );
+  }
   if (step === 'create') return <CreateGroup db={db} onBack={() => setStep('welcome')} onDone={onDone} />;
   if (step === 'join') {
     return (
@@ -58,6 +82,9 @@ export function Onboarding({ db, onDone }: { db: FamilyDB; onDone: () => Promise
         </button>
         <button className="btn block" onClick={() => setStep('join')}>
           家族のグループに参加する
+        </button>
+        <button className="btn ghost block" onClick={() => setStep('restore')}>
+          バックアップから復元する
         </button>
         <p className="small muted center">
           家族の誰かが先にグループを作っている場合は「参加する」を選んでください。

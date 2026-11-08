@@ -410,8 +410,8 @@ export function Connect({ mode, role }: { mode: Mode; role: Role }) {
       role={role}
       onExit={() => goBack('/sync')}
       onFinished={async () => {
-        await reload();
         navigate(mode === 'pair' ? '/members' : '/', { replace: true });
+        await reload();
       }}
     />
   );

@@ -115,6 +115,22 @@ export function QrScanner({ onResult, hint }: { onResult: (code: string) => void
     };
   }, []);
 
+  const pasteForm = (
+    <form
+      className="stack"
+      style={{ marginTop: 8 }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (pasted.trim()) cb.current(pasted.trim());
+      }}
+    >
+      <textarea className="textarea code-text" value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder="FH1:..." aria-label="相手の接続コード" data-testid="code-input" />
+      <button className="btn small primary" type="submit">
+        このコードで接続
+      </button>
+    </form>
+  );
+
   return (
     <div className="stack">
       {status !== 'unavailable' ? (
@@ -129,22 +145,14 @@ export function QrScanner({ onResult, hint }: { onResult: (code: string) => void
         </div>
       )}
       <p className="center">{hint}</p>
-      <details className="small" open={status === 'unavailable'}>
-        <summary>コードを貼り付けて接続</summary>
-        <form
-          className="stack"
-          style={{ marginTop: 8 }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (pasted.trim()) cb.current(pasted.trim());
-          }}
-        >
-          <textarea className="textarea code-text" value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder="FH1:..." aria-label="相手の接続コード" data-testid="code-input" />
-          <button className="btn small primary" type="submit">
-            このコードで接続
-          </button>
-        </form>
-      </details>
+      {status === 'unavailable' ? (
+        <div className="small">{pasteForm}</div>
+      ) : (
+        <details className="small">
+          <summary>コードを貼り付けて接続</summary>
+          {pasteForm}
+        </details>
+      )}
     </div>
   );
 }

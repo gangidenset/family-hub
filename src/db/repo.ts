@@ -75,7 +75,14 @@ export async function write<T extends SharedTable>(
     if (mode === 'create' && existing) throw new Error('duplicate id');
 
     const nowIso = new Date().toISOString();
-    const full: Record<string, unknown> = { ...patch, updatedAt: nowIso, updatedBy: session.memberId };
+    // 実際に値が変わったフィールドだけを記録する。フォームが全項目を保存しても、
+    // 他の家族が同時に変更した別フィールドを古い値で上書きしない (フィールド単位 LWW の前提)
+    const changed: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch)) {
+      if (mode === 'create' || JSON.stringify((existing as Record<string, unknown> | undefined)?.[k]) !== JSON.stringify(v)) changed[k] = v;
+    }
+    if (mode === 'update' && Object.keys(changed).length === 0) return;
+    const full: Record<string, unknown> = { ...changed, updatedAt: nowIso, updatedBy: session.memberId };
     if (mode === 'create') {
       Object.assign(full, { groupId: session.groupId, createdAt: nowIso, createdBy: session.memberId, deleted: false, ...patch });
     }

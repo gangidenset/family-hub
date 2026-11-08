@@ -141,3 +141,30 @@ describe('同期マージ', () => {
     await expect(applyOps(b, sa.groupId, future)).rejects.toThrow('clock-drift');
   });
 });
+
+describe('変更検出', () => {
+  it('フォームが全項目を保存しても、変更していない項目は相手の変更を上書きしない', async () => {
+    const { a, b, sa, sb } = await twoDevices();
+    const [list] = await listActive(a, sa.groupId, 'shoppingLists');
+    const id = await create(a, sa, 'shoppingItems', item(list!.id, '卵'));
+    await exchange(a, b, sa.groupId);
+    const base = (await a.shoppingItems.get(id))!;
+    const form = { name: base.name, quantity: base.quantity, unit: base.unit, categoryId: base.categoryId, note: base.note };
+    await update(a, sa, 'shoppingItems', id, { ...form, quantity: 2 });
+    await update(b, sb, 'shoppingItems', id, { ...form, note: 'Lサイズ' }); // 後から保存
+    await exchange(a, b, sa.groupId);
+    for (const db of [a, b]) {
+      const r = (await db.shoppingItems.get(id))!;
+      expect(r.quantity).toBe(2);
+      expect(r.note).toBe('Lサイズ');
+    }
+  });
+
+  it('何も変わらない保存では操作ログを増やさない', async () => {
+    const { a, sa } = await twoDevices();
+    const id = await create(a, sa, 'tasks', { title: 'x', assigneeId: null, dueDate: null, done: false, doneAt: null, doneBy: null, categoryId: null, note: '' });
+    const before = await a.oplog.count();
+    await update(a, sa, 'tasks', id, { title: 'x' });
+    expect(await a.oplog.count()).toBe(before);
+  });
+});

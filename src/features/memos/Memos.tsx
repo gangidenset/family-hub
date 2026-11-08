@@ -21,6 +21,8 @@ export function Memos() {
     .sort((a, b) => (a.pinned !== b.pinned ? (a.pinned ? -1 : 1) : a.updatedAt < b.updatedAt ? 1 : -1));
   const catMap = new Map(categories.map((c) => [c.id, c]));
 
+  if (memos === undefined) return <MainHeader title="" />;
+
   return (
     <>
       <MainHeader title="共有メモ" />

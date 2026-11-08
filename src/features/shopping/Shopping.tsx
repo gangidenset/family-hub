@@ -99,6 +99,8 @@ export function Shopping() {
     await update(db, session, 'shoppingItems', group[index]!.id, { sortKey: key });
   };
 
+  if (items === undefined) return <MainHeader title="" />;
+
   return (
     <>
       <MainHeader

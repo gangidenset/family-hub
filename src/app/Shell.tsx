@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Icon, type IconName } from '../components/Icon';
 import { PageHeader } from '../components/ui';
 import { relativeTime } from '../lib/date';
@@ -67,22 +66,6 @@ export function MainHeader({ title, extra }: { title: string; extra?: ReactNode 
   );
 }
 
-function UpdateBanner() {
-  const {
-    needRefresh: [needRefresh],
-    updateServiceWorker,
-  } = useRegisterSW();
-  if (!needRefresh) return null;
-  return (
-    <div className="banner" role="status">
-      <span>新しいバージョンがあります</span>
-      <button className="btn small primary" onClick={() => void updateServiceWorker(true)}>
-        更新
-      </button>
-    </div>
-  );
-}
-
 function route(path: string): { page: ReactNode; tabs: boolean } {
   const tab = (page: ReactNode) => ({ page, tabs: true });
   const sub = (page: ReactNode) => ({ page, tabs: false });
@@ -111,7 +94,6 @@ export function Shell() {
   const { page, tabs } = route(path);
   return (
     <div className="app">
-      <UpdateBanner />
       {page}
       {tabs && (
         <nav className="tabbar" aria-label="メイン">

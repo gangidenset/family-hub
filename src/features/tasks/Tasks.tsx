@@ -29,6 +29,8 @@ export function Tasks() {
 
   const counts = { open: all.filter((t) => !t.done).length, mine: all.filter((t) => !t.done && t.assigneeId === session.memberId).length };
 
+  if (tasks === undefined) return <MainHeader title="" />;
+
   return (
     <>
       <MainHeader title="タスク" />

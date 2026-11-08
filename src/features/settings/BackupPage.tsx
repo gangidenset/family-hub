@@ -1,41 +1,20 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../../app/context';
 import { useActive } from '../../app/hooks';
 import { navigate } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import { Field, PageHeader, Switch, useFeedback } from '../../components/ui';
-import { BackupError, exportBackup, MAX_BACKUP_BYTES, parseBackup, restoreBackup, type BackupErrorCode, type ParsedBackup } from '../../backup/backup';
+import { exportBackup } from '../../backup/backup';
+import { RestoreSection } from './RestoreSection';
 import { updateSettings } from '../../db/repo';
 import { wipeAll } from '../../db/group';
-import { readFileText, saveFile, stamp } from '../../lib/file';
-import { formatDate, isoToLocalDate, isoToLocalTime } from '../../lib/date';
-
-const ERROR_TEXT: Record<BackupErrorCode, string> = {
-  'too-large': 'ファイルが大きすぎます (50MB まで)。',
-  'not-json': 'このファイルは読み込めません。FamilyHub のバックアップファイルを選んでください。',
-  'not-backup': 'FamilyHub のバックアップファイルではないか、内容が壊れています。',
-  'newer-version': 'より新しいバージョンのアプリで作られたバックアップです。アプリを更新してから復元してください。',
-  checksum: 'ファイルが壊れているか、書き換えられています。復元を中止しました。',
-  'invalid-record': 'ファイルに正しくないデータが含まれているため、復元を中止しました。',
-  'needs-passphrase': 'パスフレーズで保護されたバックアップです。パスフレーズを入力してください。',
-  'wrong-passphrase': 'パスフレーズが違います。',
-};
-
-const LABELS: Record<string, string> = {
-  members: 'メンバー',
-  shoppingItems: '買い物の商品',
-  purchases: '購入履歴',
-  memos: 'メモ',
-  events: '予定',
-  tasks: 'タスク',
-};
+import { saveFile, stamp } from '../../lib/file';
 
 export function BackupPage() {
   const { db, session, reload } = useApp();
   const groups = useActive('groups');
   const groupName = groups?.[0]?.name ?? '';
   const { confirm, toast } = useFeedback();
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const [encrypt, setEncrypt] = useState(true);
   const [pass1, setPass1] = useState('');
@@ -43,11 +22,6 @@ export function BackupPage() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const [fileText, setFileText] = useState<string | null>(null);
-  const [needsPass, setNeedsPass] = useState(false);
-  const [restorePass, setRestorePass] = useState('');
-  const [preview, setPreview] = useState<ParsedBackup | null>(null);
-  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const [wipeText, setWipeText] = useState('');
 
@@ -68,56 +42,6 @@ export function BackupPage() {
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setExportError('書き出せませんでした');
     } finally {
-      setBusy(false);
-    }
-  };
-
-  const check = async (text: string, pass?: string) => {
-    setRestoreError(null);
-    setPreview(null);
-    setBusy(true);
-    try {
-      setPreview(await parseBackup(text, pass));
-      setNeedsPass(false);
-    } catch (e) {
-      const code = e instanceof BackupError ? e.code : 'not-backup';
-      if (code === 'needs-passphrase' || code === 'wrong-passphrase') setNeedsPass(true);
-      setRestoreError(ERROR_TEXT[code]);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onFile = async (file: File) => {
-    setRestorePass('');
-    try {
-      const text = await readFileText(file, MAX_BACKUP_BYTES);
-      setFileText(text);
-      await check(text);
-    } catch {
-      setRestoreError(ERROR_TEXT['too-large']);
-    } finally {
-      if (fileInput.current) fileInput.current.value = '';
-    }
-  };
-
-  const doRestore = async () => {
-    if (!preview) return;
-    const ok = await confirm({
-      title: 'このバックアップで復元しますか？',
-      message: `この端末の「${groupName}」のデータは、バックアップ (${formatDate(isoToLocalDate(preview.exportedAt), { year: true })} ${isoToLocalTime(preview.exportedAt)} 作成) の内容に置き換わります。\n\nバックアップ後に家族が追加した変更は、次回の同期で家族の端末から戻ってきます。`,
-      confirmLabel: '復元する',
-      danger: true,
-    });
-    if (!ok) return;
-    setBusy(true);
-    try {
-      await restoreBackup(db, preview, session.groupId);
-      toast('復元しました');
-      navigate('/', { replace: true });
-      await reload();
-    } catch {
-      setRestoreError('復元に失敗しました。端末内のデータは変更されていない可能性があります。');
       setBusy(false);
     }
   };
@@ -170,72 +94,16 @@ export function BackupPage() {
         </div>
 
         <h2 className="section-title">バックアップから復元</h2>
-        <div className="card stack">
-          <button className="btn" onClick={() => fileInput.current?.click()} disabled={busy}>
-            <Icon name="upload" />
-            ファイルを選ぶ
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".json,application/json"
-            hidden
-            data-testid="backup-file-input"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onFile(f);
-            }}
-          />
-          {restoreError && (
-            <div className="notice danger" role="alert">
-              <Icon name="alert" />
-              <span>{restoreError}</span>
-            </div>
-          )}
-          {needsPass && fileText && (
-            <form
-              className="stack"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void check(fileText, restorePass);
-              }}
-            >
-              <Field label="パスフレーズ">
-                <input className="input" type="password" value={restorePass} onChange={(e) => setRestorePass(e.target.value)} autoComplete="current-password" />
-              </Field>
-              <button className="btn" type="submit" disabled={busy}>
-                開く
-              </button>
-            </form>
-          )}
-          {preview && (
-            <div className="stack" data-testid="restore-preview">
-              <div className="notice">
-                <Icon name="info" />
-                <div>
-                  <strong>「{preview.groupName}」のバックアップ</strong>
-                  <div className="small">
-                    作成: {formatDate(isoToLocalDate(preview.exportedAt), { year: true })} {isoToLocalTime(preview.exportedAt)} ・ アプリ {preview.appVersion}
-                  </div>
-                  <div className="small">
-                    {Object.entries(LABELS)
-                      .map(([k, l]) => `${l} ${preview.counts[k as keyof typeof preview.counts]}`)
-                      .join(' ・ ')}
-                  </div>
-                  <div className="small">{preview.keys ? '同期用の鍵: 含む' : '同期用の鍵: 含まない (復元後に再ペアリングが必要)'}</div>
-                </div>
-              </div>
-              {preview.warnings.map((w) => (
-                <p key={w} className="notice warn small">
-                  {w}
-                </p>
-              ))}
-              <button className="btn primary" onClick={() => void doRestore()} disabled={busy}>
-                この内容で復元する
-              </button>
-            </div>
-          )}
-        </div>
+        <RestoreSection
+          db={db}
+          currentGroupId={session.groupId}
+          currentGroupName={groupName}
+          onRestored={async () => {
+            toast('復元しました');
+            navigate('/', { replace: true });
+            await reload();
+          }}
+        />
 
         <h2 className="section-title">データの全削除</h2>
         <div className="card stack">

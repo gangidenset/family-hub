@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import { db } from '../db/instance';
 import { getSession, type Session } from '../db/repo';
 import { FeedbackProvider } from '../components/ui';
@@ -18,6 +19,23 @@ function useApplySettings() {
     const dark = settings.theme === 'dark' || (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#111416' : '#f6f7f8');
   }, [settings]);
+}
+
+/** Service Worker の登録 (オフライン起動に必須) と更新通知。自動リロードはせず利用者の操作で適用する */
+function UpdateBanner() {
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({ immediate: true });
+  if (!needRefresh) return null;
+  return (
+    <div className="banner" role="status">
+      <span>新しいバージョンがあります</span>
+      <button className="btn small primary" onClick={() => void updateServiceWorker(true)}>
+        更新
+      </button>
+    </div>
+  );
 }
 
 export function App() {
@@ -51,6 +69,7 @@ export function App() {
 
   return (
     <FeedbackProvider>
+      <UpdateBanner />
       {session ? (
         <AppContext.Provider value={{ db, session, reload }}>
           <Shell />

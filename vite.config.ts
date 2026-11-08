@@ -64,6 +64,7 @@ export default defineConfig({
         globIgnores: ['about.html'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        clientsClaim: true,
       },
     }),
   ],

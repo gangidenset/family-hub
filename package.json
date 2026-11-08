@@ -1,0 +1,41 @@
+{
+  "name": "familyhub",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "オフラインで使える、データを外に出さない家族共有アプリ",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p . && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "test:e2e": "playwright test --trace off",
+    "check": "npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "fake-indexeddb": "^6.2.7",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0"
+  }
+}

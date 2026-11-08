@@ -40,7 +40,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['icons/*.png', 'icons/*.svg', 'legal/*.html'],
+      includeAssets: ['icons/*.png', 'icons/*.svg', 'legal/*.html', 'legal/*.css'],
       manifest: {
         id: './',
         name: 'FamilyHub',
@@ -61,6 +61,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
+        globIgnores: ['about.html'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },

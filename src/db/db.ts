@@ -101,7 +101,7 @@ export class FamilyDB extends Dexie {
       peers: '[groupId+deviceId]',
       oplog: '[groupId+deviceId+seq], [groupId+recordId]',
       conflicts: 'id, [groupId+table+recordId]',
-      groups: 'id',
+      groups: 'id, groupId',
       members: 'id, groupId',
       devices: 'id, groupId',
       categories: 'id, groupId',

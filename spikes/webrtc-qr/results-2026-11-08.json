@@ -1,0 +1,87 @@
+{
+  "results": [
+    {
+      "name": "default (mDNS host candidates)",
+      "connected": true,
+      "ms": 5423,
+      "inviteDelivered": true,
+      "candidates": [
+        "6e5d5238-7dba-42df-8d90-704ceccab34d.local:57748"
+      ],
+      "rawSdpBytes": {
+        "offer": 586,
+        "answer": 564
+      },
+      "codeChars": {
+        "offer": 196,
+        "answer": 116
+      },
+      "qrVersion": {
+        "offer": 9,
+        "answer": 7
+      },
+      "stateA": {
+        "ice": "connected",
+        "conn": "connected",
+        "channel": "open"
+      }
+    },
+    {
+      "name": "mDNS obfuscation disabled",
+      "connected": true,
+      "ms": 5365,
+      "inviteDelivered": true,
+      "candidates": [
+        "192.0.2.2:42291"
+      ],
+      "rawSdpBytes": {
+        "offer": 560,
+        "answer": 536
+      },
+      "codeChars": {
+        "offer": 180,
+        "answer": 100
+      },
+      "qrVersion": {
+        "offer": 9,
+        "answer": 6
+      },
+      "stateA": {
+        "ice": "connected",
+        "conn": "connected",
+        "channel": "open"
+      }
+    },
+    {
+      "name": "tampered fingerprint (MITM) — must NOT connect",
+      "connected": false,
+      "ms": 13071,
+      "inviteDelivered": true,
+      "candidates": [
+        "192.0.2.2:38950"
+      ],
+      "rawSdpBytes": {
+        "offer": 560,
+        "answer": 536
+      },
+      "codeChars": {
+        "offer": 180,
+        "answer": 100
+      },
+      "qrVersion": {
+        "offer": 9,
+        "answer": 6
+      },
+      "stateA": {
+        "ice": "connected",
+        "conn": "failed",
+        "channel": "connecting"
+      }
+    }
+  ],
+  "validation": {
+    "garbage": "rejected: invalid characters",
+    "truncated": "rejected: truncated payload",
+    "sdpInjection": "rejected: bad ice credentials"
+  }
+}

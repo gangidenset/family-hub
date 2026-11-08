@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>WebRTC QR spike</title></head>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import { encodeDescription, decodeDescription } from './sdp-codec.js';
+
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+let pc, channel;
+const received = [];
+
+function setup() {
+  // STUN/TURN を一切使わない (外部サーバーへの依存ゼロ) → host 候補のみ
+  pc = new RTCPeerConnection({ iceServers: [] });
+  channel = pc.createDataChannel('sync', { negotiated: true, id: 0 });
+  channel.onmessage = (e) => received.push(e.data);
+  channel.onopen = () => log('channel open');
+  pc.oniceconnectionstatechange = () => log('ice: ' + pc.iceConnectionState);
+}
+
+function gatheringDone(timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    if (pc.iceGatheringState === 'complete') return resolve();
+    const t = setTimeout(resolve, timeoutMs);
+    pc.addEventListener('icegatheringstatechange', () => {
+      if (pc.iceGatheringState === 'complete') { clearTimeout(t); resolve(); }
+    });
+  });
+}
+
+window.spike = {
+  async createOffer(extraText = '') {
+    setup();
+    await pc.setLocalDescription(await pc.createOffer());
+    await gatheringDone();
+    return { code: encodeDescription(pc.localDescription, new TextEncoder().encode(extraText)), rawSdpLength: pc.localDescription.sdp.length, candidates: (pc.localDescription.sdp.match(/a=candidate:.*/g) || []) };
+  },
+  async acceptOffer(code) {
+    setup();
+    const { description, extra } = decodeDescription(code);
+    await pc.setRemoteDescription(description);
+    await pc.setLocalDescription(await pc.createAnswer());
+    await gatheringDone();
+    return { code: encodeDescription(pc.localDescription), extra: new TextDecoder().decode(extra), rawSdpLength: pc.localDescription.sdp.length };
+  },
+  async acceptAnswer(code) {
+    const { description } = decodeDescription(code);
+    await pc.setRemoteDescription(description);
+  },
+  waitOpen(timeoutMs = 10000) {
+    return new Promise((resolve) => {
+      if (channel.readyState === 'open') return resolve(true);
+      const t = setTimeout(() => resolve(false), timeoutMs);
+      channel.addEventListener('open', () => { clearTimeout(t); resolve(true); });
+    });
+  },
+  send(msg) { channel.send(msg); },
+  received: () => received.slice(),
+  state: () => ({ ice: pc.iceConnectionState, conn: pc.connectionState, channel: channel.readyState }),
+  decode: (code) => { try { decodeDescription(code); return 'ok'; } catch (e) { return 'rejected: ' + e.message; } },
+};
+log('ready');
+</script>
+</body>
+</html>

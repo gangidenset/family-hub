@@ -1,0 +1,14 @@
+{
+  "name": "familyhub-spike-webrtc-qr",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Phase 1 技術検証: サーバーなしWebRTC接続 (QRコードによる手動シグナリング)",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "dependencies": {
+    "jsqr": "1.4.0",
+    "qrcode": "1.5.4"
+  }
+}

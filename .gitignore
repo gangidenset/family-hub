@@ -1,0 +1,44 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dev-dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# test artifacts
+playwright-report/
+test-results/
+blob-report/
+
+# native (Capacitor, 将来)
+android/app/build/
+ios/App/Pods/
+ios/App/build/
+
+# env / secrets (絶対にコミットしない)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# user data (バックアップファイルを誤ってコミットしない)
+*.fhbackup.json
+*.fhsync
+
+# logs / OS / editor
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

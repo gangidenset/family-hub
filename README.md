@@ -2,15 +2,84 @@
 
 **オフラインで使える・データを外に出さない、家族のための共有アプリ。**
 
-買い物リスト・共有メモ・家族の予定・タスクを、サーバーやアカウントなしで家族のスマートフォン間で共有します。
+買い物リスト・家族の予定・タスク・共有メモを、サーバーやアカウントなしで家族のスマートフォン間で共有します。
 
-- 📴 インターネットなしで全機能が動作（PWA / 端末内保存）
-- 🔒 データは家族の端末にだけ保存。外部サーバー・解析・広告なし
-- 👨‍👩‍👧 QR コードで家族の端末をつなぎ、同じ Wi-Fi で直接同期（暗号化）
-- 💴 買い切り型（予定）
+- 📴 **オフライン**: 初回読み込み後はネットなしで起動・全機能が動作 (PWA / IndexedDB)
+- 🔒 **プライバシー**: データは家族の端末にだけ保存。外部サーバー・アカウント・広告・解析なし
+- 👨‍👩‍👧 **家族で共有**: QR コードで端末をつなぎ、同じ Wi-Fi で端末同士が直接同期 (暗号化)
+- 💾 **バックアップ**: JSON 書き出し (パスフレーズ暗号化可) と検証付きの復元
+- 💴 **買い切り** (予定): 月額料金なし・機能制限なし
 
-> **現在の状態: Phase 1（設計・技術検証）完了。アプリ本体は未実装です。**
-> 進捗と検証結果は [Phase 1 完了報告](docs/phase1-report.md) を参照してください。
+> **現在の状態**: アプリ本体を実装済み。自動テスト (単体 35 件 / E2E 8 件) はすべて成功しています。
+> **Android・iPhone の実機での検証は未実施です** ([docs/testing.md](docs/testing.md))。
+
+## 機能
+
+| 画面 | 機能 |
+|---|---|
+| ホーム | 直近 1 週間の予定、未完了タスク (自分の担当を優先・その場で完了)、買い物リストの残数、ピン留めメモ |
+| 買い物リスト | 複数リスト、追加・編集・削除 (元に戻せる)、購入済みチェック、カテゴリー別表示、数量・単位・メモ、並び替え、購入履歴と「もう一度追加」、よく買う物の候補 |
+| 共有メモ | タイトル・本文 (自動保存)、カテゴリー、ピン留め、更新日時と更新者、同時編集時の競合表示と解決 |
+| 家族の予定 | 月表示カレンダー、終日・時刻指定・複数日、参加メンバー、カテゴリー、場所・メモ |
+| タスク | 担当者、期限 (今日/明日/週末/1週間後のクイック選択)、完了チェック、未完了・自分の担当・完了済みの絞り込み、期限切れ表示 |
+| 家族メンバー | メンバー (人) の追加・編集・削除、端末の追加 (QR ペアリング)、端末を外す (鍵の更新) |
+| 同期 | QR を表示 / 読み取って同期、未送信件数・最終同期・履歴の表示、失敗時の理由と再試行、暗号化ファイルでの同期 |
+| 設定 | グループ名、バックアップ・復元・全削除、カテゴリー管理、テーマ (自動/ライト/ダーク)、文字サイズ、利用規約・プライバシーポリシー |
+
+## 家族との同期のしくみ
+
+1. **初回 (ペアリング)**: 既存の端末で「家族メンバー → 端末を追加」、新しい端末で「家族のグループに参加する」。QR を互いに読み取り、両画面の 6 桁の確認コードが一致したら家族の鍵が渡されます。
+2. **同期**: 両方の端末で FamilyHub を開き、「同期」で片方が QR を表示、もう片方が読み取り、表示された QR を読み取り返すと差分が交換されます。
+3. **つながらない場合**: 「ファイルで同期」で、家族の鍵で暗号化したファイルを AirDrop・Quick Share・メッセージアプリなどで渡せます。
+
+**制約 (ブラウザの仕様によるもの)**: PWA は閉じている間は同期できず、同期のたびに QR の読み取りが必要です。ゲスト Wi-Fi など端末間通信が遮断されたネットワークでは接続できません。インターネット越しのリアルタイム同期はサーバーなしでは実現できないため提供していません。詳細は [docs/06-sync-design.md](docs/06-sync-design.md)。
+
+## 環境構築
+
+必要なもの: Node.js 20 以上
+
+```bash
+npm ci
+npm run dev        # 開発サーバー (http://localhost:5173)
+```
+
+スマートフォンから開発サーバーを試す場合、カメラ・Service Worker・WebRTC には HTTPS (または localhost) が必要です。本番ビルドを HTTPS で配信して確認してください。
+
+## コマンド
+
+| コマンド | 内容 |
+|---|---|
+| `npm run dev` | 開発サーバー |
+| `npm run build` | 型チェック + 本番ビルド (`dist/`。CSP 埋め込み・Service Worker 生成) |
+| `npm run preview` | 本番ビルドをローカル配信 (http://localhost:4173) |
+| `npm run typecheck` | 型チェックのみ |
+| `npm test` | 単体・結合テスト (Vitest) |
+| `npm run test:e2e` | E2E テスト (Playwright。初回は `npx playwright install chromium` が必要な場合あり) |
+
+## 配布
+
+- **Web (PWA)**: `dist/` を HTTPS の静的ホスティングに置くだけで動作します (サーバー設定不要)。紹介ページは `about.html`。
+- **Android / iOS**: Capacitor でネイティブ化する手順を [docs/store-release.md](docs/store-release.md) にまとめています (未実施)。
+
+## 構成
+
+```
+src/
+├─ app/         ルーティング・レイアウト・共通フック
+├─ components/  共通 UI 部品・アイコン
+├─ features/    画面 (home, shopping, memos, calendar, tasks, members, settings, sync, onboarding)
+├─ domain/      エンティティのスキーマ (zod) — UI 入力・同期・復元の検証を一元化
+├─ db/          IndexedDB (Dexie)・Repository・HLC・グループ管理
+├─ sync/        接続コード・WebRTC・同期プロトコル・ペアリング・マージ・暗号・同期ファイル
+├─ backup/      バックアップの書き出し・検証・復元
+└─ lib/         日付・並び順キー・バイト列・ファイル入出力
+tests/unit/     Vitest
+tests/e2e/      Playwright (2 端末同期・オフライン・バックアップなど)
+spikes/         Phase 1 の技術検証コード
+public/         アイコン・法務ページ・紹介ページ
+```
+
+技術スタック: TypeScript (strict) / React 19 / Vite / vite-plugin-pwa (Workbox) / Dexie.js / zod / WebRTC DataChannel / Web Crypto API / qrcode / jsQR
 
 ## ドキュメント
 
@@ -18,29 +87,20 @@
 |---|---|
 | [要件整理](docs/01-requirements.md) | 機能・非機能要件、制約 |
 | [技術選定](docs/02-tech-stack.md) | 採用技術とその理由 |
-| [システム構成](docs/03-architecture.md) | 構成図・レイヤー・ディレクトリ |
-| [データベース設計](docs/04-data-model.md) | IndexedDB スキーマ・同期用メタデータ・バックアップ形式 |
-| [画面設計](docs/05-screens.md) | 7 画面とデザイントークン |
-| [同期方式](docs/06-sync-design.md) | サーバーなし端末間通信の検証結果と方式 |
+| [システム構成](docs/03-architecture.md) | 構成図・レイヤー |
+| [データベース設計](docs/04-data-model.md) | スキーマ・操作ログ・マージ規則・バックアップ形式 |
+| [画面設計](docs/05-screens.md) | 画面とデザイントークン |
+| [同期方式](docs/06-sync-design.md) | サーバーなし端末間通信の検証と方式 |
 | [セキュリティ](docs/07-security.md) | 脅威モデルと設計判断 |
+| [テスト](docs/testing.md) | テスト結果と実機検証チェックリスト |
+| [ストア公開準備](docs/store-release.md) | 配布・掲載情報・プライバシー申告 |
 | [判断ログ](docs/decisions.md) | ADR |
+| [Phase 1 報告](docs/phase1-report.md) / [Phase 2〜5 報告](docs/phase-reports.md) | 実装内容・テスト結果・残課題 |
 
-## 技術スタック（予定）
+## プライバシー
 
-TypeScript / React / Vite / vite-plugin-pwa / Dexie.js (IndexedDB) / WebRTC DataChannel / Web Crypto API / zod — 将来 Capacitor で Android・iOS アプリ化。
-
-## 技術検証コードの実行
-
-前提: Node.js 20 以上、Playwright と Chromium がインストール済みであること。
-
-```bash
-cd spikes/webrtc-qr
-npm install
-npm test   # 2 つのブラウザ間でサーバーなし WebRTC 接続を検証し、結果 JSON を出力
-```
-
-アプリ本体の環境構築・実行方法は Phase 2 で追記します。
+本アプリは個人情報を収集しません。秘密情報 (API キー等) も使用していません。詳しくは [プライバシーポリシー](public/legal/privacy.html)。
 
 ## ライセンス
 
-未定（製品として販売予定のため、現時点では All rights reserved）。
+未定 (製品として販売予定のため、現時点では All rights reserved)。

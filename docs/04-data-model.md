@@ -10,7 +10,8 @@
 4. **操作ログ（oplog）**: すべての変更を `(deviceId, seq)` で採番して記録。同期時はバージョンベクタで差分だけ送る。
 5. **ID は端末で生成**: `crypto.randomUUID()`。衝突確率は実用上ゼロ、オフライン作成可能。
 6. **日時**: 時刻は ISO 8601（UTC, `2026-11-08T03:00:00.000Z`）、終日予定・期限日は `YYYY-MM-DD`（タイムゾーンに依存しない日付）。
-7. **前方互換**: 未知のフィールドは保持して破棄しない（新しいバージョンの端末と同期しても情報が欠落しない）。
+7. **厳格なスキーマ**: 未知のフィールドは拒否する。互換性はスキーマ/プロトコルのバージョンで管理する（ADR-015 で当初案から変更）。
+8. **変更されたフィールドだけを記録**: 同じ値の再保存は操作ログに残さない（ADR-016）。
 
 ## 2. HLC（Hybrid Logical Clock）
 
@@ -62,7 +63,7 @@ interface SyncedRecord {
 | `categories` | `[groupId+scope]` | `scope: 'shopping' \| 'memo' \| 'event' \| 'task'`, `name`, `color`, `sortKey` |
 | `shoppingLists` | `[groupId+deleted]` | `name`, `sortKey` |
 | `shoppingItems` | `[groupId+listId]`, `[groupId+checked]` | `listId`, `name`, `quantity`, `unit`, `categoryId`, `note`, `checked`, `checkedAt`, `checkedBy`, `sortKey` |
-| `purchases` | `[groupId+purchasedAt]`, `[groupId+name]` | `name`, `quantity`, `unit`, `categoryId`, `listId`, `purchasedAt`, `purchasedBy` — 購入済みにした時点で追記（追記専用）。履歴表示と「よく買う物」候補に使う |
+| `purchases` | `[groupId+purchasedAt]` | `itemId`, `name`, `quantity`, `unit`, `categoryId`, `listId`, `purchasedAt`, `purchasedBy` — 購入済みにした時点で追記（追記専用）。履歴表示と「よく買う物」候補に使う |
 | `memos` | `[groupId+pinned]`, `[groupId+updatedAt]` | `title`, `body`, `categoryId`, `pinned` |
 | `events` | `[groupId+startDate]` | `title`, `allDay`, `start`（ISO or 日付）, `end`, `startDate`（検索用 `YYYY-MM-DD`）, `memberIds[]`, `categoryId`, `location`, `note` |
 | `tasks` | `[groupId+done]`, `[groupId+dueDate]`, `[groupId+assigneeId]` | `title`, `assigneeId`, `dueDate`, `done`, `doneAt`, `doneBy`, `categoryId`, `note` |
@@ -122,7 +123,13 @@ type VersionVector = Record<string /* deviceId */, number /* 受信済み最大 
 - グループ鍵は機微情報のため、**通常の JSON バックアップには含めない**。鍵を含めたい場合はパスフレーズで暗号化した「完全バックアップ」として出力（PBKDF2 → AES-GCM）。鍵がない状態で復元した端末は、家族の端末と再ペアリングすれば同期を再開できる。
 - 復元はすべて zod で検証 → 件数・内容のプレビュー確認画面 → 既存データを置換（またはマージ）の順。詳細は [07-security](./07-security.md)。
 
-## 8. マイグレーション方針
+## 8. 実装との対応
+
+- スキーマ定義: `src/domain/schemas.ts`（zod）/ `src/db/db.ts`（Dexie）
+- 書き込み・操作ログ: `src/db/repo.ts`、マージ: `src/sync/merge.ts`、バックアップ: `src/backup/backup.ts`
+- 復元時は端末 ID を再発行する（ADR-017）
+
+## 9. マイグレーション方針
 
 - Dexie の `db.version(n).stores(...).upgrade(tx => ...)` で段階的に移行。バージョンを飛ばした更新でも順に適用される。
 - 同期プロトコルにも `protocolVersion` を持たせ、異なるバージョンの端末同士は互換範囲内でのみ同期（非互換なら「アプリを更新してください」）。

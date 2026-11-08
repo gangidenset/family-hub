@@ -1,0 +1,7 @@
+{
+  "appId": "app.familyhub.client",
+  "appName": "FamilyHub",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never" }
+}

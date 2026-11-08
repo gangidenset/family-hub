@@ -68,7 +68,8 @@ export default defineConfig({
       },
     }),
   ],
-  build: { target: 'es2022', sourcemap: false },
+  // 全アセットをオフライン用にプリキャッシュするため、分割よりも単一バンドル (gzip 約 165KB) を優先
+  build: { target: 'es2022', sourcemap: false, chunkSizeWarningLimit: 700 },
   test: {
     environment: 'node',
     include: ['tests/unit/**/*.test.ts'],

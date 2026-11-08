@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FamilyHub — データを外に出さない家族の共有アプリ</title>
+<meta name="description" content="買い物リスト・予定・タスク・メモを、サーバーに預けず家族のスマホだけで共有。アカウント不要・広告なし・オフライン対応の買い切りアプリ。" />
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+<style>
+:root { color-scheme: light dark; --bg:#f6f7f8; --surface:#fff; --text:#1b2024; --sub:#5a636b; --primary:#2f7d6d; --soft:#e3f1ed; --line:#dde2e6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#111416; --surface:#1a1e21; --text:#eceef0; --sub:#a3abb3; --primary:#5fbfa9; --soft:#1d3530; --line:#30373c; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif; line-height:1.75; }
+.wrap { max-width:960px; margin:0 auto; padding:0 20px; }
+header.hero { padding:64px 0 40px; text-align:center; }
+.hero img { width:96px; height:96px; border-radius:24px; }
+.hero h1 { font-size:clamp(1.75rem,5vw,2.5rem); line-height:1.35; margin:16px 0 8px; }
+.hero p { color:var(--sub); font-size:1.125rem; margin:0 auto; max-width:640px; }
+.cta { display:inline-flex; gap:8px; align-items:center; margin-top:24px; padding:14px 28px; border-radius:14px; background:var(--primary); color:#fff; font-weight:700; text-decoration:none; }
+@media (prefers-color-scheme: dark) { .cta { color:#0d1f1a; } }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin:24px 0; }
+.card { background:var(--surface); border-radius:16px; padding:20px; border:1px solid var(--line); }
+.card h3 { margin:0 0 6px; font-size:1.0625rem; }
+.card p { margin:0; color:var(--sub); font-size:0.9375rem; }
+section { padding:32px 0; }
+h2 { font-size:1.5rem; text-align:center; margin:0 0 8px; }
+.lead { text-align:center; color:var(--sub); margin:0 0 16px; }
+.promise { background:var(--soft); border-radius:20px; padding:28px; }
+.promise ul { margin:0; padding-left:1.2em; }
+details { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin:8px 0; }
+summary { font-weight:700; cursor:pointer; }
+footer { color:var(--sub); font-size:0.875rem; text-align:center; padding:40px 0; }
+footer a { color:inherit; }
+</style>
+</head>
+<body>
+<header class="hero wrap">
+  <img src="icons/icon-192.png" alt="" />
+  <h1>家族の「いつもの」を、<br />家族のスマホの中だけで。</h1>
+  <p>買い物リスト・予定・タスク・メモを家族で共有。データはサーバーに預けず、家族の端末同士で直接同期します。</p>
+  <a class="cta" href="./">アプリを開く</a>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2>毎日使う 4 つの機能</h2>
+    <div class="grid">
+      <div class="card"><h3>🛒 買い物リスト</h3><p>複数リスト・カテゴリー・数量・メモ。チェックした物は購入履歴に残り、「よく買う物」からワンタップで追加。</p></div>
+      <div class="card"><h3>📅 家族カレンダー</h3><p>誰が参加する予定かアイコンでひと目で。終日・複数日の予定にも対応。</p></div>
+      <div class="card"><h3>✅ タスク</h3><p>担当と期限を決めて家事を分担。期限切れは目立つ表示で、ホーム画面にも自分の担当が並びます。</p></div>
+      <div class="card"><h3>📝 共有メモ</h3><p>学校の持ち物、Wi-Fi のパスワード、家のルール。大切なメモはピン留め。同時に編集しても内容は失われません。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="promise">
+      <h2>あなたの家族の情報は、あなたの家族のもの</h2>
+      <ul>
+        <li><strong>アカウント登録なし。</strong>メールアドレスも電話番号もいりません。</li>
+        <li><strong>サーバーに保存しません。</strong>開発者でさえ、あなたのデータを見ることはできません。</li>
+        <li><strong>通信は暗号化。</strong>家族の端末同士が直接つながり、家族の鍵で暗号化します。</li>
+        <li><strong>広告・トラッキングなし。</strong>解析ツールも入っていません。</li>
+        <li><strong>オフラインで動作。</strong>電波の届かないスーパーの奥でも、リストを確認できます。</li>
+        <li><strong>買い切り。</strong>月額料金はありません。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>家族とのつなぎ方</h2>
+    <div class="grid">
+      <div class="card"><h3>1. QR を見せる</h3><p>家族の端末で「端末を追加」を開くと QR コードが表示されます。</p></div>
+      <div class="card"><h3>2. 読み取り合う</h3><p>新しい端末で読み取り、表示された QR を読み取ってもらいます。両方に出る 6 桁の数字が同じなら完了。</p></div>
+      <div class="card"><h3>3. いつでも同期</h3><p>同じ Wi-Fi で両方のアプリを開き、同じ手順で QR を読み取り合うと最新の状態がそろいます。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>よくある質問</h2>
+    <details><summary>離れた場所にいる家族とも同期できますか？</summary><p>サーバーを使わない設計のため、リアルタイムの遠隔同期はできません。代わりに、家族の鍵で暗号化した「同期ファイル」をメッセージアプリなどで送って取り込めます。中身は家族の端末でしか読めません。</p></details>
+    <details><summary>自動で同期されますか？</summary><p>Web 版 (PWA) では、ブラウザの制約により同期のたびに QR の読み取りが必要で、アプリを開いている間だけ同期します。ストア版では、同じ Wi-Fi の家族の端末を自動で見つけて同期できるよう開発を進めています。</p></details>
+    <details><summary>つながらないことはありますか？</summary><p>ゲスト Wi-Fi や、端末同士の通信を制限しているルーターでは接続できません。その場合も「ファイルで同期」で共有できます。</p></details>
+    <details><summary>スマホをなくしたら？</summary><p>データは家族の他の端末にも保存されているので、新しい端末を家族に追加すれば戻ってきます。全員分の端末を失った場合に備えて、定期的なバックアップをおすすめします。</p></details>
+  </section>
+</main>
+
+<footer class="wrap">
+  <a href="legal/privacy.html">プライバシーポリシー</a> ・ <a href="legal/terms.html">利用規約</a><br />
+  © FamilyHub
+</footer>
+</body>
+</html>

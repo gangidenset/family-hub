@@ -4,12 +4,12 @@
 
 ## 1. HTTPS で公開する (どれか 1 つ)
 
-### A. GitHub Pages (GitHub Pro / Team の場合、またはリポジトリを公開している場合)
-非公開 (private) リポジトリで Pages を使うには有料プランが必要です。
+### A. GitHub Pages (採用: リポジトリを public にして使用)
+非公開 (private) リポジトリで Pages を使うには有料プランが必要なため、リポジトリを公開して使います。
 
-1. GitHub のリポジトリ → **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にする
-2. **Settings → Secrets and variables → Actions → Variables** で `DEPLOY_PAGES` = `true` を追加
-3. **Actions → CI → Run workflow** (または何かを push)
+1. GitHub のリポジトリ → **Settings → General → Danger Zone → Change repository visibility** で **Public** にする
+2. **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にする
+3. **Actions → CI → Run workflow** (以降は push するたびに自動で公開)
 4. 完了すると `https://gangidenset.github.io/family-hub/` で開けます (URL は Actions の deploy-pages ジョブに表示)
 
 > 注意: Pages の URL は、リポジトリが非公開でも **誰でもアクセスできます**。アプリ本体に個人データは含まれないので問題はありませんが、公開前の製品を見られたくない場合は B を選んでください。

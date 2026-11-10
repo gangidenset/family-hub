@@ -1,6 +1,6 @@
 # ビルド・テストを行い、実機確認用の成果物を作る。
 # - 毎回: 型チェック / 単体テスト / E2E / ビルド → dist を成果物 (familyhub-dist) として保存
-# - リポジトリ変数 DEPLOY_PAGES が 'true' のとき: GitHub Pages に公開 (実機確認用の HTTPS URL)
+# - push 時: GitHub Pages に公開 (実機確認用の HTTPS URL)。事前に Settings → Pages → Source を GitHub Actions にしておく
 name: CI
 
 on:
@@ -43,13 +43,13 @@ jobs:
           path: dist
           retention-days: 14
       - name: GitHub Pages 用の成果物
-        if: vars.DEPLOY_PAGES == 'true' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy-pages:
-    if: vars.DEPLOY_PAGES == 'true' && github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     needs: test-and-build
     runs-on: ubuntu-latest
     permissions:

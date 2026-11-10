@@ -1,0 +1,63 @@
+# ビルド・テストを行い、実機確認用の成果物を作る。
+# - 毎回: 型チェック / 単体テスト / E2E / ビルド → dist を成果物 (familyhub-dist) として保存
+# - リポジトリ変数 DEPLOY_PAGES が 'true' のとき: GitHub Pages に公開 (実機確認用の HTTPS URL)
+name: CI
+
+on:
+  push:
+    branches: [main, ccr-22375a20-0x6eij]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: E2E (本番ビルドに対して実行)
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+      - run: npm run build
+      - name: dist をダウンロード可能な成果物として保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: familyhub-dist
+          path: dist
+          retention-days: 14
+      - name: GitHub Pages 用の成果物
+        if: vars.DEPLOY_PAGES == 'true' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-pages:
+    if: vars.DEPLOY_PAGES == 'true' && github.event_name != 'pull_request'
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

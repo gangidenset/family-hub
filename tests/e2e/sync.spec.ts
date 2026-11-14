@@ -199,6 +199,11 @@ test('接続タイムアウト時はエラーと代替手段 (ファイル同期
   await pasteCode(a, answer);
   await expect(a.getByTestId('sync-error')).toBeVisible({ timeout: 60_000 });
   await expect(a.getByText(/同じ Wi-Fi/)).toBeVisible();
+  await a.getByText('技術情報 (不具合の報告用)').click();
+  const diag = await a.getByTestId('sync-diagnostics').innerText();
+  expect(diag).toContain('失敗した段階: 端末同士の接続');
+  expect(diag).toMatch(/自分の接続候補: mDNS \d+ \/ IPv4 \d+/);
+  expect(diag).not.toMatch(/\d+\.\d+\.\d+\.\d+/); // IP アドレスを含まない
 
   // 代替: 暗号化ファイルで同期
   await a.getByRole('button', { name: 'ファイルで同期する' }).click();

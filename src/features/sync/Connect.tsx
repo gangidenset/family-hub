@@ -8,10 +8,10 @@ import { runPairInviter, runPairJoiner, type Invite, type JoinChoice } from '../
 import { runSync, SyncError, type SyncOutcome, type SyncProgress } from '../../sync/protocol';
 import { PeerLink, webrtcSupported } from '../../sync/webrtc';
 import { fromUtf8, safeJsonParse, utf8 } from '../../lib/bytes';
-import { guessDeviceName } from '../../lib/device';
+import { guessDeviceName, isStandalone } from '../../lib/device';
 import { useApp } from '../../app/context';
 import { goBack, navigate } from '../../app/router';
-import { Avatar, ColorPicker, Field, PageHeader } from '../../components/ui';
+import { Avatar, ColorPicker, Field, PageHeader, useFeedback } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { QrDisplay, QrScanner } from './Qr';
 
@@ -30,7 +30,7 @@ type Phase =
   | { k: 'choose-member'; invite: Invite }
   | { k: 'syncing'; progress: SyncProgress | null }
   | { k: 'done'; outcome: SyncOutcome }
-  | { k: 'error'; code: ErrorCode };
+  | { k: 'error'; code: ErrorCode; diag: string };
 
 export const SYNC_ERROR_TEXT: Record<ErrorCode, string> = {
   'connect-timeout':
@@ -69,13 +69,21 @@ export function ConnectFlow({ db, session, mode, role, onExit, onFinished }: Flo
   const sasResolve = useRef<((ok: boolean) => void) | null>(null);
   const memberResolve = useRef<((c: JoinChoice) => void) | null>(null);
   const alive = useRef(true);
+  const stage = useRef<Phase['k']>('preparing');
+  useEffect(() => {
+    if (phase.k !== 'error') stage.current = phase.k;
+  }, [phase.k]);
 
-  const fail = useCallback((e: unknown) => {
-    if (!alive.current) return;
-    const code: ErrorCode = e instanceof SyncError ? e.code : e instanceof InvalidCodeError ? 'invalid-code' : 'unknown';
-    link.current?.close();
-    setPhase({ k: 'error', code });
-  }, []);
+  const fail = useCallback(
+    (e: unknown) => {
+      if (!alive.current) return;
+      const code: ErrorCode = e instanceof SyncError ? e.code : e instanceof InvalidCodeError ? 'invalid-code' : 'unknown';
+      const diag = formatDiagnostics({ mode, role, stage: stage.current, code, link: link.current, error: e });
+      link.current?.close();
+      setPhase({ k: 'error', code, diag });
+    },
+    [mode, role],
+  );
 
   const runProtocol = useCallback(
     async (l: PeerLink, timeoutMs: number) => {
@@ -122,7 +130,7 @@ export function ConnectFlow({ db, session, mode, role, onExit, onFinished }: Flo
   useEffect(() => {
     alive.current = true;
     if (!webrtcSupported()) {
-      setPhase({ k: 'error', code: 'unsupported' });
+      setPhase({ k: 'error', code: 'unsupported', diag: formatDiagnostics({ mode, role, stage: 'preparing', code: 'unsupported', link: null, error: null }) });
       return;
     }
     if (role !== 'host') {
@@ -174,11 +182,11 @@ export function ConnectFlow({ db, session, mode, role, onExit, onFinished }: Flo
       return;
     }
     if ((mode === 'pair' && extra.m !== 'p') || (mode === 'sync' && extra.m !== 's')) {
-      setPhase({ k: 'error', code: 'wrong-mode' });
+      setPhase({ k: 'error', code: 'wrong-mode', diag: formatDiagnostics({ mode, role, stage: 'scan-offer', code: 'wrong-mode', link: null, error: null }) });
       return;
     }
     if (mode === 'sync' && extra.g !== session?.groupId) {
-      setPhase({ k: 'error', code: 'different-group' });
+      setPhase({ k: 'error', code: 'different-group', diag: formatDiagnostics({ mode, role, stage: 'scan-offer', code: 'different-group', link: null, error: null }) });
       return;
     }
     link.current?.close();
@@ -340,10 +348,73 @@ export function ConnectFlow({ db, session, mode, role, onExit, onFinished }: Flo
                 ファイルで同期する
               </button>
             )}
+            <DiagnosticsBox text={phase.diag} />
           </div>
         )}
       </main>
     </>
+  );
+}
+
+const STAGE_LABEL: Partial<Record<Phase['k'], string>> = {
+  preparing: '接続情報の準備',
+  'show-offer': 'QR (1 枚目) の表示',
+  'scan-answer': 'QR (2 枚目) の読み取り',
+  'scan-offer': 'QR (1 枚目) の読み取り',
+  'show-answer': 'QR (2 枚目) の表示 / 相手の読み取り待ち',
+  connecting: '端末同士の接続',
+  sas: '確認コードの照合',
+  'choose-member': 'メンバーの選択',
+  syncing: 'データのやり取り',
+};
+
+function summary(c: { mdns: number; ipv4: number; ipv6: number } | null): string {
+  return c ? `mDNS ${c.mdns} / IPv4 ${c.ipv4} / IPv6 ${c.ipv6}` : '不明';
+}
+
+/** 問い合わせ用の診断情報 (IP アドレスや家族のデータは含めない) */
+function formatDiagnostics(o: { mode: Mode; role: Role; stage: Phase['k']; code: ErrorCode; link: PeerLink | null; error: unknown }): string {
+  const d = o.link?.diagnostics;
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad/.test(ua) ? `iOS ${(ua.match(/OS (\d+[_\d]*)/)?.[1] ?? '?').replace(/_/g, '.')}` : /Android/.test(ua) ? `Android ${ua.match(/Android ([\d.]+)/)?.[1] ?? '?'}` : 'その他';
+  const browser = /CriOS|Chrome\//.test(ua) ? `Chrome ${ua.match(/(?:CriOS|Chrome)\/(\d+)/)?.[1] ?? ''}` : /Safari\//.test(ua) ? `Safari ${ua.match(/Version\/([\d.]+)/)?.[1] ?? ''}` : 'その他';
+  const lines = [
+    `操作: ${o.mode === 'pair' ? 'ペアリング' : '同期'} / ${o.role === 'host' ? 'QR を表示する側' : 'QR を読み取る側'}`,
+    `失敗した段階: ${STAGE_LABEL[o.stage] ?? o.stage}`,
+    `エラー: ${o.code}${o.code === 'unknown' && o.error instanceof Error ? ` (${o.error.name})` : ''}`,
+    `端末: ${os} / ${browser} / ${isStandalone() ? 'ホーム画面から起動' : 'ブラウザ'}`,
+    `カメラ許可: ${d?.camera ?? '不明'}`,
+    `自分の接続候補: ${summary(d?.local ?? null)}`,
+    `相手の接続候補: ${summary(d?.remote ?? null)}`,
+    `ICE 状態: ${d?.ice.join(' → ') || 'なし'}`,
+    `接続状態: ${d?.connection.join(' → ') || 'なし'}`,
+    `候補収集: ${d?.gatheringMs ?? '-'} ms`,
+  ];
+  return lines.join('\n');
+}
+
+function DiagnosticsBox({ text }: { text: string }) {
+  const { toast } = useFeedback();
+  return (
+    <details className="small">
+      <summary>技術情報 (不具合の報告用)</summary>
+      <pre className="code-text" style={{ whiteSpace: 'pre-wrap', background: 'var(--surface-2)', padding: 12, borderRadius: 10 }} data-testid="sync-diagnostics">
+        {text}
+      </pre>
+      <button
+        className="btn small"
+        onClick={() =>
+          void navigator.clipboard
+            ?.writeText(text)
+            .then(() => toast('コピーしました'))
+            .catch(() => toast('コピーできませんでした'))
+        }
+      >
+        <Icon name="copy" />
+        技術情報をコピー
+      </button>
+      <p className="muted">IP アドレスや家族のデータは含まれません。</p>
+    </details>
   );
 }
 
